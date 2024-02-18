@@ -4,6 +4,7 @@ if exist desolroom.inc del desolroom.inc
 if exist desolroom.zx0 del desolroom.zx0
 if exist desolcode.bin del desolcode.bin
 if exist desolcode.txt del desolcode.txt
+if exist desolcode.zx0 del desolcode.zx0
 if exist desolate.bin del desolate.bin
 if exist desolate.rks del desolate.rks
 
@@ -16,23 +17,23 @@ tools\pasmo --w8080 desolroom.asm desolroom.bin desolroom.inc
 if errorlevel 1 goto Failed
 dir /-c desolroom.bin|findstr /R /C:"desolroom.bin"
 
-echo Compressing desolroom...
-tools\salvador.exe -classic -c desolroom.bin desolroom.zx0
-if errorlevel 1 goto Failed
-
-dir /-c desolroom.zx0|findstr /R /C:"desolroom.zx0"
-
 echo Compiling desolcode...
 tools\pasmo --w8080 desolcoda.asm desolcode.bin desolcode.txt
 if errorlevel 1 goto Failed
-
 dir /-c desolcode.bin|findstr /R /C:"desolcode.bin"
-
 findstr /B "Desolate" desolcode.txt
 
-echo Compbining binaries...
-copy /b desolcode.bin+desolroom.zx0 desolate.bin >nul
+echo Compressing...
+tools\salvador.exe -classic -c desolcode.bin desolcode.zx0
+if errorlevel 1 goto Failed
+dir /-c desolcode.zx0|findstr /R /C:"desolcode.zx0"
+tools\salvador.exe -classic -c desolroom.bin desolroom.zx0
+if errorlevel 1 goto Failed
+dir /-c desolroom.zx0|findstr /R /C:"desolroom.zx0"
 
+echo Compiling desolcod0...
+tools\pasmo --w8080 desolcod0.asm desolate.bin
+if errorlevel 1 goto Failed
 dir /-c desolate.bin|findstr /R /C:"desolate.bin"
 
 echo Converting desolate.bin to rks...

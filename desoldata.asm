@@ -115,7 +115,7 @@ LDCF5:  DEFB $00          ; ?? $00 $01
 ;  DEFB $00
 LDCF7:  DEFB $00          ; Weapon: $00 $01
 LDCF8:  DEFB $00          ; $01 = Data cartridge selected, used on the Data cartridge reader screen
-LDCF9:  
+LDCF9:
   DEFB $20,$20,$20,$20,$20,$20,$20,$20
   DEFB $20,$20,$20,$20,$20,$20,$20,$20
   DEFB $20,$20,$20,$20,$20,$20,$20,$20

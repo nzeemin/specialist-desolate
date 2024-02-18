@@ -8,39 +8,10 @@ CHEAT_HEALTH_999        EQU 0
 
 ;----------------------------------------------------------------------------
 
-  org 0x0000
-
-  ld sp,$9000
-
-; Unpack desolroom.zx0 to screen
-  ld de, DesolateCodeEnd
-  ld bc, $9000
-  call dzx0
-
-  ld de,MirrorTab
-GenMirrorTab:
-  ld h,e
-  add hl,hl
-  rra       ; 0
-  add hl,hl
-  rra       ; 1
-  add hl,hl
-  rra       ; 2
-  add hl,hl
-  rra       ; 3
-  add hl,hl
-  rra       ; 4
-  add hl,hl
-  rra       ; 5
-  add hl,hl
-  rra       ; 6
-  add hl,hl
-  rra       ; 7
-  ld (de),a
-  inc e
-  jp nz,GenMirrorTab
+  org 0x0100
 
 Start:
+  ld sp,$9000
 
 ;
 ; Draw DESOLATE title sign on top of the screen
@@ -94,7 +65,6 @@ start_2:
 ;  call LBF6F  ; The End
 
 ;  call ShowShadowScreen
-;  di
 ;  halt
 
 ;  call WaitAnyKey
@@ -299,10 +269,10 @@ DrawTileMasked:
 	ld (SetSP8+1),hl
   call GetScreenAddr	; now HL = screen addr
   ld bc,24-1    ; increment to the next line
-	di
+;	di
 SetSP7:
 	ld sp,0
-	
+
 	pop de
 	ld a,(hl)
 	and e
@@ -528,7 +498,7 @@ SetSP7:
 
 SetSP8:
 	ld sp,0
-	ei
+;	ei
   ret
 
 ; Draw string  on shadow screen using FontProto
@@ -728,7 +698,7 @@ ScreenTheme_2:
 
 ; Copy DEDSOLATE title from Main Menu shadow screen to Vector screen
 CopyTitleSign:
-  di
+;  di
   ld hl,0
   add hl,sp
   ld (SetSP1+1),hl
@@ -739,7 +709,7 @@ CopyTitleSign:
 ;
 ; Copy shadow screen 24*128=3072 bytes to Specialist screen
 ShowShadowScreen:
-  di
+;  di
   ld hl,0
   add hl,sp
   ld (SetSP1+1),hl
@@ -825,7 +795,7 @@ ShowShadowScreen_1:             ; loop by A
   jp nz,ShowShadowScreen_1      ; continue the loop
 SetSP1:
 	ld sp,0
-	ei
+;	ei
   ret
 
 ; Clear block on the shadow screen
@@ -943,9 +913,9 @@ DesolateDataBeg:
 ;----------------------------------------------------------------------------
 DesolateCodeEnd:
 
-  IF DesolateCodeEnd > 08100h
+IF DesolateCodeEnd > 08100h
   .ERROR DesolateCodeEnd overlaps $8100
-  ENDIF
+ENDIF
 
 MirrorTab    EQU 08100h
 

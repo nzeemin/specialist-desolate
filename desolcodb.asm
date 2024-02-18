@@ -210,7 +210,7 @@ L9EDE:
   ld bc,ShadowScreen
   ADD HL,BC
   ld bc,24-1              ; increment to the next line
-	di
+;	di
 SetSP4:
 	ld sp,0
 	pop de
@@ -438,7 +438,7 @@ SetSP4:
 
 SetSP3:
 	ld sp,0
-	ei
+;	ei
   RET
 ; Horizontal reflection
 L9EDE_HR:
@@ -457,7 +457,7 @@ L9EDE_HR:
   ADD HL,BC
 	inc hl
 	ld b,MirrorTab>>8
-	di
+;	di
 SetSP5:
 	ld sp,0
 	pop de
@@ -828,7 +828,7 @@ SetSP5:
 
 SetSP6:
 	ld sp,0
-	ei
+;	ei
   RET
 
 ; Copy shadow screen to ZX screen
@@ -948,7 +948,7 @@ SkipMenuPhase:
 	add hl,sp
 	ld (SetSP2+1),hl
   ex de,hl              ; now HL = tile address
-	di
+;	di
 	ld sp,hl
 SetShadScrAdr1:
 	ld hl,0				; HL = shadow screen address
@@ -1051,7 +1051,7 @@ SetShadScrAdr1:
 
 SetSP2:
 	ld sp,0
-	ei
+;	ei
 LA8B0:
   POP DE
   ld hl,(SetShadScrAdr1+1)
