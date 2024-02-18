@@ -1,7 +1,7 @@
 
 ; Game binary file structure:
 ; 1. desolcod0.bin from $0000
-; 2. desolcoda.zx0 to unpack
+; 2. desolcoda.zx0 to unpack to $0100
 ; 3. desolroom.zx0 to unpack to $9000
 
 MirrorTab	EQU 08100h

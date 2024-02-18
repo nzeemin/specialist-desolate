@@ -911,10 +911,10 @@ DesolateDataBeg:
   INCLUDE "desoldata.asm"
 
 ;----------------------------------------------------------------------------
-DesolateCodeEnd:
+DesolateDataEnd:
 
-IF DesolateCodeEnd > 08100h
-  .ERROR DesolateCodeEnd overlaps $8100
+IF DesolateDataEnd > 08100h
+  .ERROR DesolateDataEnd overlaps $8100
 ENDIF
 
 MirrorTab    EQU 08100h

@@ -111,11 +111,10 @@ SE11D: DEFM "System Alert triggered: |'Foreign Objects Detected|OnBoard'. The Al
        DEFM "It wasnt over yet",$06,".",$06,".",$06,".",0
 SE11F: DEFM "The End",0
 ;
-SAccessLevel1: DEFM $1B,"Level 1|",0
-SAccessLevel2: DEFM $1B,"Level 2|",0
-SAccessLevel3: DEFM $1B,"Level 3|",0
-SAccessLevel4: DEFM $1B,"Level 4|",0
-SAccessCodeReq: DEFM $09,"Access Code|",$15,"Required",0       ;TODO
+SAccessLevel1: DEFM $1B,"Level 1|",$09,"Access Code|",$15,"Required",0
+SAccessLevel2: DEFM $1B,"Level 2|",$09,"Access Code|",$15,"Required",0
+SAccessLevel3: DEFM $1B,"Level 3|",$09,"Access Code|",$15,"Required",0
+SAccessLevel4: DEFM $1B,"Level 4|",$09,"Access Code|",$15,"Required",0
 ;
 SE129: DEFM "You dont seem to be able|",$0F,"to use this item here",0
 SE12B: DEFM "You dont have any time|",$08,"to play with this now",0
