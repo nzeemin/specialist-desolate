@@ -4286,6 +4286,8 @@ LBF1B:                    ; Line end
 LBF64:
   call ScreenThemeNite
   call ClearShadowScreen
+  xor a
+  ld (LDCF3),a            ; Left margin size for text
   LD HL,$1600
   LD (L86D7),HL           ; Set penRow/penCol
   LD HL,SCredits

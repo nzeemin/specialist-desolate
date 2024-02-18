@@ -90,8 +90,18 @@ CpHLDE:
 	ret
 
 SoundLookShoot:
-;TODO
-  ret
+        ld      l, $10
+        ld      a, $0B
+SoundLookShoot_1:
+        ld      c, $D0
+        ld      ($0ff03), a
+SoundLookShoot_2:
+        dec     c
+        jp      nz, SoundLookShoot_2
+        xor     1
+        dec     l
+        jp      nz, SoundLookShoot_1
+	ret
 
 ;----------------------------------------------------------------------------
 ; ZX0 decompressor code by Ivan Gorodetsky
