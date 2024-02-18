@@ -1,3 +1,9 @@
+SCredits:
+       DEFM "Original game made|by Patrick Prendergast for|TI-83/84 Plus calculators.||"
+       DEFM "Ported to Specialist|by nzeemin|"
+       INCLUDE "desolvers.asm"
+       DB 0
+
 ; Data Cartridge messages
 SE079: DEFM "Im hurt bad . . . I dont|think im gonna make it.|I changed the Level 1|Access Code to: 4057|"
        DEFM "Maybe that will hold|them off for a while . . .",0
@@ -38,8 +44,8 @@ SE09F: DEFM "a tr1p1ea game",0
 SE0A1: DEFM "Items Found (/24):|",$1F,$02,"Enemies Killed:|",$1F,$03,"Player Deaths:||Awards:",0
 SE0A3: DEFM "OverWrite Current Game?|Enter - Yes :: P/R - No",0
 SE0A5: DEFM "- Controls -",0
-SE0A7: DEFM "Arrows: Movement|Space: Look/shoot|I T X B: Inventory|Tab: Look/shoot mode|"
-       DEFM "AR2: Close pop-ups|Q M: Quit to Menu",0
+SE0A7: DEFM "Arrows",$06,"Movement|Space",$0f,"Look/shoot|I T X B",$0e,"Inventory|Tab . ?",$0d,"Look/shoot mode|"
+       DEFM "AR2 ZB",$0c,"Close pop-ups|Q M",$10,$13,"Quit to Menu",0
 SE0A9: DEFM "Earn 3 Good Awards for|an Extended Ending!",0
 SE0AB: DEFM "Sir Miss-A-Lot",0
 SE0AD: DEFM "Sherlock Holmes",0

@@ -1,6 +1,6 @@
 
 ; Turn on/off cheat codes
-CHEAT_SHOW_ROOM_NUMBER  EQU 1
+CHEAT_SHOW_ROOM_NUMBER  EQU 0
 CHEAT_ALL_ACCESS        EQU 0
 CHEAT_ALL_INVENTORY     EQU 0
 CHEAT_HAVE_WEAPON       EQU 0
@@ -208,21 +208,34 @@ ReadKeyboard:
 	ld a,$ff		; Menu key code
 	ret
 ReadKeyboard_1:
-	ld  a, ($ff00)		; Встречаем 0 в правой половине клавиатуры
+	ld  a,($ff00)		; Встречаем 0 в правой половине клавиатуры
 	cpl
-	and $f0			; I/T/X/B
+	ld b,a
+	and 1			; ЗБ ?
 	jp z,ReadKeyboard_2
+	ld a,$40		; Excape key code
+	ret
+ReadKeyboard_2:
+	ld a,b
+	and $f0			; I/T/X/B
+	jp z,ReadKeyboard_3
 	ld a,$49		; Inventory key code
 	ret
+ReadKeyboard_3:
+	ld a,b
+	and $06			; . ? keys
+	jp z,ReadKeyboard_5
+	ld a,$80		; Switch key code
+	ret
 ; Теперь получаем все остальные клавиши
-ReadKeyboard_2:
-	ld  a, $fb
-	ld  ($ff01), a		; Отправляем 0 в строку матрицы с нужными клавишами
-	ld  a, ($ff02)		; Встречаем 0 в левой половине клавиатуры
+ReadKeyboard_5:
+	ld  a,$fb
+	ld  ($ff01),a		; Отправляем 0 в строку матрицы с нужными клавишами
+	ld  a,($ff02)		; Встречаем 0 в левой половине клавиатуры
 	cpl
 	and $03			; Up/Down
-	ld  b, a
-	ld  a, ($ff00)		; Встречаем 0 в правой половине клавиатуры
+	ld  b,a
+	ld  a,($ff00)		; Встречаем 0 в правой половине клавиатуры
 	cpl
 	and $f4			; Tab/Esc/Space/Left/Right
 	or  b
@@ -678,7 +691,8 @@ ScreenThemeNite:
 ScreenThemeLite:
   ld a,$FF
 ScreenTheme_0:
-  ld hl,$C3C8             ; Vector screen addresses, top-left
+  ld (ScreenTheme),a      ; Save the theme flag
+  ld hl,$9B40             ; Screen addresses, top-left
   ld b,128+16             ; lines count
 ScreenTheme_1:
   ld c,13                 ; number of column pairs, 26 columns
@@ -691,10 +705,11 @@ ScreenTheme_2:
   dec c
   jp nz,ScreenTheme_2
   pop hl                  ; restore screen address
-  dec l
+  inc l
   dec b
   jp nz,ScreenTheme_1
   ret
+ScreenTheme: DB 0	; Screen theme flag: 0=nite, ff=day
 
 ; Copy DEDSOLATE title from Main Menu shadow screen to Vector screen
 CopyTitleSign:
@@ -709,12 +724,14 @@ CopyTitleSign:
 ;
 ; Copy shadow screen 24*128=3072 bytes to Specialist screen
 ShowShadowScreen:
-;  di
   ld hl,0
   add hl,sp
   ld (SetSP1+1),hl
   ld hl,$9C48                   ; Vector screen addresses, top-left
   ld sp,ShadowScreen            ; shadow screen address
+  ld a,(ScreenTheme)
+  or a
+  jp nz,ShowShadowScreen_2	; Day theme
   ld a,128                      ; 128 lines
 ShowShadowScreen_1:             ; loop by A
 	pop bc
@@ -795,8 +812,135 @@ ShowShadowScreen_1:             ; loop by A
   jp nz,ShowShadowScreen_1      ; continue the loop
 SetSP1:
 	ld sp,0
-;	ei
   ret
+ShowShadowScreen_2
+  ld e,128                      ; 128 lines
+ShowShadowScreen_3:             ; loop by A
+	pop bc
+	ld a,c
+	cpl
+	ld (hl),a
+	inc h
+	ld a,b
+	cpl
+	ld (hl),a
+	inc h
+
+	pop bc
+	ld a,c
+	cpl
+	ld (hl),a
+	inc h
+	ld a,b
+	cpl
+	ld (hl),a
+	inc h
+
+	pop bc
+	ld a,c
+	cpl
+	ld (hl),a
+	inc h
+	ld a,b
+	cpl
+	ld (hl),a
+	inc h
+
+	pop bc
+	ld a,c
+	cpl
+	ld (hl),a
+	inc h
+	ld a,b
+	cpl
+	ld (hl),a
+	inc h
+
+	pop bc
+	ld a,c
+	cpl
+	ld (hl),a
+	inc h
+	ld a,b
+	cpl
+	ld (hl),a
+	inc h
+
+	pop bc
+	ld a,c
+	cpl
+	ld (hl),a
+	inc h
+	ld a,b
+	cpl
+	ld (hl),a
+	inc h
+
+	pop bc
+	ld a,c
+	cpl
+	ld (hl),a
+	inc h
+	ld a,b
+	cpl
+	ld (hl),a
+	inc h
+
+	pop bc
+	ld a,c
+	cpl
+	ld (hl),a
+	inc h
+	ld a,b
+	cpl
+	ld (hl),a
+	inc h
+
+	pop bc
+	ld a,c
+	cpl
+	ld (hl),a
+	inc h
+	ld a,b
+	cpl
+	ld (hl),a
+	inc h
+
+	pop bc
+	ld a,c
+	cpl
+	ld (hl),a
+	inc h
+	ld a,b
+	cpl
+	ld (hl),a
+	inc h
+
+	pop bc
+	ld a,c
+	cpl
+	ld (hl),a
+	inc h
+	ld a,b
+	cpl
+	ld (hl),a
+	inc h
+
+	pop bc
+	ld a,c
+	cpl
+	ld (hl),a
+	inc h
+	ld a,b
+	cpl
+	ld (hl),a
+
+	ld bc,0E901h
+	add hl,bc
+
+  dec e                         ; loop counter for line pairs
+  jp nz,ShowShadowScreen_3      ; continue the loop
+  jp SetSP1
 
 ; Clear block on the shadow screen
 ;   HL=row/col, DE=rows/cols

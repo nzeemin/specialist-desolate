@@ -3733,8 +3733,8 @@ LBA93:
   JP Z,LBB82              ; Continue menu item
   CP $52
   JP Z,LBBEC              ; Info menu item
-;  CP $5E
-;  JP Z,LBF64              ; Credits menu item
+  CP $5E
+  JP Z,LBF64              ; Credits menu item
 ;  CP $6A
 ;  JP Z,L9E51              ; Quit menu item
   JP LBA3D                ; Return to main Menu
@@ -4280,6 +4280,20 @@ LBF1B:                    ; Line end
   LD (L86D7),A            ; Set penCol
   POP BC
   jp LBEDE
+;
+; Credits screen
+;
+LBF64:
+  call ScreenThemeNite
+  call ClearShadowScreen
+  LD HL,$1600
+  LD (L86D7),HL           ; Set penRow/penCol
+  LD HL,SCredits
+  CALL LBEDE              ; Show message char-by-char
+  CALL ShowShadowScreen   ; Copy shadow screen to ZX screen
+  call WaitAnyKey
+  call ScreenThemeLite    ; switching to light theme for Main Menu
+  JP LBA3D                ; Return to main Menu
 ;
 ; The End
 ;
