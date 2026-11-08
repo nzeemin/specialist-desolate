@@ -1,6 +1,7 @@
 /x-*
 /.vscode
-/desolroom.inc
+/desolcod0.inc
+/desolvers.asm
 /*.bin
 /*.rks
 /*.txt

@@ -1780,17 +1780,16 @@ LADA9:
 ;   Returns: HL = LDBF5
 LADE5:
   LD A,(LDB79)            ; Get the room number
-  LD HL,LDE97             ; List of encoded room addresses
-  CALL LADFF              ; now HL = encoded room address
-; Entry point: Decode 96 bytes to LDBF5
-LADEE:
-  LD BC,$0060             ; decode 96 bytes
-; Decode the room/screen to LDBF5
-;   HL = decode from; BC = tile count to decode
+  LD HL,RoomTable         ; List of ZX0-packed room addresses
+  CALL LADFF              ; now HL = packed room address
+; Entry point: Unpack the ZX0-packed screen to LDBF5
+;   HL = unpack from
 ;   Returns: HL = LDBF5
+LADEE:
 LADF5:
-  LD DE,LDBF5             ; Decode to
-  CALL LB9F1              ; Decode the room/screen
+  ex de,hl                ; DE = from
+  ld bc,LDBF5             ; BC = to
+  call dzx0               ; unpack
   LD HL,LDBF5
   RET
 ;
@@ -3619,36 +3618,6 @@ LB9D6:
   LD (LDB7A),A            ; set Health = 100
   RET
 ;
-; Decode the block from RLE sequence
-;   HL = address decode from (usually encoded room/screen)
-;   DE = address decode to
-;   C = number of bytes to decode
-LB9F1:
-  LD A,(HL)
-  CP $FF                  ; repeater?
-  jp z,LB9FB
-  ld a,(hl)
-  inc hl
-  ld (de),a
-  inc de
-  dec c
-  ret z
-  jp LB9F1
-LB9FB:
-  inc hl
-  ld b,(hl)   ; counter
-  inc hl
-  ld a,(hl)   ; byte to copy
-  inc hl
-LB9FF:
-  ld (de),a
-  inc de
-  dec c
-  ret z
-  dec b
-  jp nz,LB9FF
-  jp LB9F1
-;
 ; Show titles and show Menu
 LBA07:
 ;  LD A,50       ; 68 -> 50 for Vector
@@ -3681,25 +3650,19 @@ MenuFromGame:
 ; Return to Menu
 ;
 LBA3D:
+  call MenuUnpackImage    ; Main menu image to the shadow screen
+  CALL ShowShadowScreen   ; Copy shadow screen to ZX screen
+  call MenuUnpackMask     ; Main menu mask to the shadow screen
+  xor a
+  ld (MenuBgPrev),a       ; no background on the screen yet
+  call MenuBgStep         ; draw the background through the mask
+  call ArrowsToggle       ; draw menu item selection arrows on the screen
+MenuLoop:
   LD A,(LDC55)            ; get Menu background phase
   INC A
   AND $07
   LD (LDC55),A            ; set Menu background phase
-;  DI
-  LD HL,LF515             ; Main menu screen moving background, 96 tiles
-  CALL LA88F              ; Display 96 tiles on the screen
-  LD HL,LF4B5             ; Main menu screen
-;  EI
-  CALL LB177              ; Display screen HL from tiles with Tileset 2
-  LD C,$0B                ; left triangle X pos
-  LD hl,Tileset3          ; Tile arrow right
-;  DI
-  CALL LBA88              ; Draw menu item selection triangle
-  LD C,$4D                ; right triangle X pos
-  LD hl,Tileset3+32       ; Tile arrow left
-;  DI
-  CALL LBA88              ; Draw menu item selection triangle
-  CALL ShowShadowScreen   ; Copy shadow screen to ZX screen
+  call MenuBgStep         ; animate the background
   CALL LA0F1              ; Scan keyboard
   CP $20                  ; look/shoot key
   jp Z,LBA93              ;   select menu item
@@ -3711,17 +3674,9 @@ LBA3D:
   JP Z,LBBDC
   LD HL,Random16_seed1
   INC (HL)                ; Change random seed
-  jp LBA3D                ; Return to main Menu
+  jp MenuLoop             ; Next animation frame
 ;
 ;NOTE: LBA81 routine moved close to LBC34
-;
-; Draw menu item selection triangle
-LBA88:
-  LD A,(LDB8F)            ; get Menu Y pos
-  LD e,A                  ; E = Y coord
-  LD A,C                  ; A = X coord
-  LD B,10                 ; B = tile height
-  jp L9E5F                ; Draw tile by XOR operation
 ;
 ; Select on Menu item
 LBA93:
@@ -3744,6 +3699,7 @@ LBAB2:
   LD A,(LDB73)
   OR A                    ; do we have current game?
   jp Z,LBADE              ; no => New Game
+  call ClearShadowScreen  ; the shadow screen holds the menu mask now
   CALL LB925
   CALL LAB28              ; Show small message popup
   LD HL,$580E
@@ -3866,33 +3822,33 @@ LBB92:
   jp NZ,LBBA4
   LD A,(LDB8F)            ; get Menu Y pos
   ADD A,-24               ; up two steps
-  LD (LDB8F),A            ; set Menu Y pos
-  JP LBA3D                ; Return to main Menu
+  CALL MenuMoveArrows     ; set Menu Y pos, move the arrows
+  JP MenuLoop             ; continue the menu loop
 ; Menu up step
 LBBA4:
   LD A,(LDB8F)            ; get Menu Y pos
   ADD A,-12               ; up one step
-  LD (LDB8F),A            ; set Menu Y pos
-  JP LBA3D                ; Return to main Menu
+  CALL MenuMoveArrows     ; set Menu Y pos, move the arrows
+  JP MenuLoop             ; continue the menu loop
 LBBAF:
   LD A,(LDB73)
   OR A                    ; do we have the game to continue?
   jp NZ,LBBC1
   LD A,(LDB8F)            ; get Menu Y pos
   ADD A,24                ; down two steps
-  LD (LDB8F),A            ; set Menu Y pos
-  JP LBA3D                ; Return to main Menu
+  CALL MenuMoveArrows     ; set Menu Y pos, move the arrows
+  JP MenuLoop             ; continue the menu loop
 ; Menu down step
 LBBC1:
   LD A,(LDB8F)            ; get Menu Y pos
   ADD A,12                ; down one step
-  LD (LDB8F),A            ; set Menu Y pos
-  JP LBA3D                ; Return to main Menu
+  CALL MenuMoveArrows     ; set Menu Y pos, move the arrows
+  JP MenuLoop             ; continue the menu loop
 ; Menu up key pressed
 LBBCC:
   LD A,(LDB8F)            ; get Menu Y pos
   CP $3A                  ; "New Game" selected?
-  JP Z,LBA3D              ; yes => continue
+  JP Z,MenuLoop           ; yes => continue
   CP $52                  ; "Info" selected?
   jp Z,LBB92
   jp LBBA4
@@ -3900,7 +3856,7 @@ LBBCC:
 LBBDC:
   LD A,(LDB8F)            ; get Menu Y pos
   CP $6A                  ; "Quit" selected?
-  JP Z,LBA3D
+  JP Z,MenuLoop
   CP $3A                  ; "New Game" selected?
   jp Z,LBBAF
   jp LBBC1
@@ -3908,6 +3864,7 @@ LBBDC:
 ; Info menu item, show Controls
 ;
 LBBEC:
+  call ClearShadowScreen   ; the shadow screen holds the menu mask now
   LD HL,LF329             ; Decode from - Encoded screen for Inventory/Info popup
 ;  LD BC,$0060             ; Counter = 96 bytes or tiles
   call LADEE              ; Decode the screen to LDBF5

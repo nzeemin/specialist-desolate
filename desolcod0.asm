@@ -1,8 +1,10 @@
 
+; Compiled twice: with -E PASS1=1 to export the dzx0 address to desolcod0.inc (the packed code
+; is not needed then), and the final time with -E PASS1=0.
+
 ; Game binary file structure:
 ; 1. desolcod0.bin from $0000
-; 2. desolcoda.zx0 to unpack to $0100
-; 3. desolroom.zx0 to unpack to $9000
+; 2. desolcode.zx0 to unpack to $0100 (rooms are included in the code)
 
 MirrorTab	EQU 08100h
 
@@ -12,13 +14,8 @@ MirrorTab	EQU 08100h
 
   ld sp,$9000
 
-; Unpack desolroom.zx0 to screen
-  ld de, DesolateRoomBeg	; from
-  ld bc, $9000			; to = screen
-  call dzx0
-
 ; Move desolcode.zx0 block
-  ld hl, DesolateRoomBeg	; from
+  ld hl, DesolateCodeEnd	; from
   ld de, 08200h			; to
   ld bc, DesolateCodePacked	; size
 Unpack_1:
@@ -151,17 +148,13 @@ dzx0_ldir1:
   org 0100h
 Start:
   org Start
+  IF PASS1 = 0
   INCBIN "desolcode.zx0"
+  ENDIF
 
-DesolateCodePacked EQU DesolateRoomBeg - Start
+DesolateCodeEnd:
 
-;----------------------------------------------------------------------------
-; desolroom.zx0
-DesolateRoomBeg:
-  INCBIN "desolroom.zx0"
-DesolateRoomEnd:
-
-DesolateRoomPacked EQU DesolateRoomEnd - DesolateRoomBeg
+DesolateCodePacked EQU DesolateCodeEnd - Start
 
 ;----------------------------------------------------------------------------
 

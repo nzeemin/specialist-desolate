@@ -14,10 +14,25 @@ Start:
   ld sp,$9000
 
 ;
-; Draw DESOLATE title sign on top of the screen
-; LDBF5 buffer already pre-filled with 3 lines of the title screen with the big DESOLATE sign
-  LD HL,LDBF5
-  call LB177              ; Display screen from tiles with Tileset2
+; Clear the whole screen RAM $9000-$BFFF (it is not cleared by anything else)
+  ld sp,$C000
+  ld hl,0
+  ld a,24
+Start_clr1:
+  ld b,128
+Start_clr2:
+  push hl
+  push hl
+  dec b
+  jp nz,Start_clr2
+  dec a
+  jp nz,Start_clr1
+  ld sp,$9000
+
+;
+; Draw DESOLATE title sign on top of the screen: unpack the menu image to the shadow screen
+; and copy the sign (shadow lines 8..37) to the screen
+  call MenuUnpackImage
   call CopyTitleSign
   call ClearShadowScreen
 
@@ -104,84 +119,11 @@ SoundLookShoot_2:
 	ret
 
 ;----------------------------------------------------------------------------
-; ZX0 decompressor code by Ivan Gorodetsky
-; https://github.com/ivagorRetrocomp/DeZX/blob/main/ZX0/8080/OLD_V1/dzx0_CLASSIC.asm
-; input:	de=compressed data start
-;		bc=uncompressed destination start
-; Распаковщик для сжатия ZX0 forward, код для 8080 в мнемонике Z80
-dzx0:
-		ld hl,0FFFFh
-		push hl
-		inc hl
-		ld a,080h
-dzx0_literals:
-		call dzx0_elias
-		call dzx0_ldir
-		jp c,dzx0_new_offset
-		call dzx0_elias
-dzx0_copy:
-		ex de,hl
-		ex (sp),hl
-		push hl
-		add hl,bc
-		ex de,hl
-		call dzx0_ldir
-		ex de,hl
-		pop hl
-		ex (sp),hl
-		ex de,hl
-		jp nc,dzx0_literals
-dzx0_new_offset:
-		call dzx0_elias
-		ld h,a
-		pop af
-		xor a
-		sub l
-		ret z
-		push hl
-		rra
-		ld h,a
-		ld a,(de)
-		rra
-		ld l,a
-		inc de
-		ex (sp),hl
-		ld a,h
-		ld hl,1
-		call nc,dzx0_elias_backtrack
-		inc hl
-		jp dzx0_copy
-dzx0_elias:
-		inc l
-dzx0_elias_loop:
-		add a,a
-		jp nz,dzx0_elias_skip
-		ld a,(de)
-		inc de
-		rla
-dzx0_elias_skip:
-		ret c
-dzx0_elias_backtrack:
-		add hl,hl
-		add a,a
-		jp nc,dzx0_elias_loop
-		jp dzx0_elias
-dzx0_ldir:
-		push af
-dzx0_ldir1:
-		ld a,(de)
-		ld (bc),a
-		inc de
-		inc bc
-		dec hl
-		ld a,h
-		or l
-		jp nz,dzx0_ldir1
-		pop af
-		add a,a
-		ret
+; dzx0 (ZX0 decompressor) lives in the boot loader, desolcod0.asm; its address is exported
+; to desolcod0.inc on the first pass of compiling desolcod0.asm
+;   input:  de=compressed data start, bc=uncompressed destination start
+  INCLUDE "desolcod0.inc"
 
-;----------------------------------------------------------------------------
 DesolateCodeBeg:
 
 ; Wait for any key
@@ -721,16 +663,233 @@ ScreenTheme_2:
   ret
 ScreenTheme: DB 0	; Screen theme flag: 0=nite, ff=day
 
-; Copy DEDSOLATE title from Main Menu shadow screen to Vector screen
+; Main Menu image and mask, 192x128 each, in the shadow screen layout (24 bytes per line),
+; ZX0-packed in desolmenu.asm. Only one of them can be in the shadow screen at a time.
+MenuUnpackImage:
+  ld de,MenuImagePacked
+  ld bc,ShadowScreen
+  jp dzx0
+
+MenuUnpackMask:
+  ld de,MenuMaskPacked
+  ld bc,ShadowScreen
+  jp dzx0
+
+; Copy DESOLATE title from the menu image in the shadow screen to the Specialist screen
 CopyTitleSign:
 ;  di
   ld hl,0
   add hl,sp
   ld (SetSP1+1),hl
   ld hl,$9C18                   ; Vector screen addresses, top-left
-  ld sp,ShadowScreen+24*8            ; shadow screen address
-  ld a,30                      ; 30 lines
+  ld sp,ShadowScreen+24*8       ; shadow screen address
+  ld a,30                       ; 30 lines
   jp ShowShadowScreen_1
+
+; Main Menu background animation on the Specialist screen, through the mask in the shadow screen.
+; The screen already has the menu image; the background is a 16x16 tile $47+phase from Tileset1
+; in the cells marked $47 in LF515. Instead of redrawing, toggle the difference between
+; the previous and the new phase, only where the mask allows: screen ^= (old ^ new) & mask.
+; The first call after MenuBgPrev = 0 draws the whole background (tile 0 is empty).
+MenuBgStep:
+  ld a,(MenuBgPrev)
+  call MenuBgTileAddr           ; HL = previous tile
+  push hl
+  ld a,(LDC55)                  ; menu background phase 0..7
+  add a,$47
+  ld (MenuBgPrev),a
+  call MenuBgTileAddr           ; HL = new tile
+  pop de                        ; DE = previous tile
+  ld bc,MenuBgDelta
+MenuBgStep_1:
+  ld a,(de)
+  xor (hl)
+  ld (bc),a
+  inc hl
+  inc de
+  inc c
+  ld a,c
+  cp MenuBgDelta+32 & 255
+  jp nz,MenuBgStep_1
+; Go through the 96 cells 12 x 8
+  ld hl,LF515
+  ld (MenuBgMap),hl
+  ld a,$48                      ; first screen line of the game window
+  ld (MenuBgLine),a
+  ld hl,ShadowScreen
+  ld (MenuBgMaskRow),hl
+  ld a,8
+  ld (MenuBgRows),a
+MenuBgStep_row:
+  ld a,12
+  ld (MenuBgCols),a
+  ld a,$9C                      ; first screen column of the game window
+  ld (MenuBgCol),a
+  ld hl,(MenuBgMaskRow)
+  ld (MenuBgMask),hl
+MenuBgStep_cell:
+  ld hl,(MenuBgMap)
+  ld a,(hl)
+  inc hl
+  ld (MenuBgMap),hl
+  cp $47
+  call z,MenuBgCell
+  ld a,(MenuBgCol)
+  add a,2
+  ld (MenuBgCol),a
+  ld hl,(MenuBgMask)
+  inc hl
+  inc hl
+  ld (MenuBgMask),hl
+  ld hl,MenuBgCols
+  dec (hl)
+  jp nz,MenuBgStep_cell
+  ld a,(MenuBgLine)
+  add a,16
+  ld (MenuBgLine),a
+  ld hl,(MenuBgMaskRow)
+  ld de,16*24
+  add hl,de
+  ld (MenuBgMaskRow),hl
+  ld hl,MenuBgRows
+  dec (hl)
+  jp nz,MenuBgStep_row
+  ret
+
+; A = tile number; returns HL = Tileset1 + A * 32
+MenuBgTileAddr:
+  ld l,a
+  ld h,0
+  add hl,hl
+  add hl,hl
+  add hl,hl
+  add hl,hl
+  add hl,hl
+  ld bc,Tileset1
+  add hl,bc
+  ret
+
+; Toggle one 16x16 cell: screen column MenuBgCol (+1), lines from MenuBgLine,
+; mask in the shadow screen at MenuBgMask (2 bytes per line, 24 bytes between lines)
+MenuBgCell:
+  ld hl,0
+  add hl,sp
+  ld (MenuBgSP),hl
+  ld sp,MenuBgDelta             ; delta bytes come with POP
+  ld a,(MenuBgLine)
+  ld c,a
+  ld a,(MenuBgCol)
+  ld b,a                        ; BC = screen address, left byte
+  ld hl,(MenuBgMask)
+MenuBgCell_1:
+  pop de                        ; E = delta left, D = delta right
+  ld a,(hl)
+  and e
+  ld e,a
+  inc hl
+  ld a,(hl)
+  and d
+  ld d,a
+  ld a,(bc)
+  xor e
+  ld (bc),a                      ; left byte
+  inc b
+  ld a,(bc)
+  xor d
+  ld (bc),a                      ; right byte
+  dec b
+  inc c                         ; next line
+  ld de,24-1
+  add hl,de                     ; next mask line
+  ld a,c                        ; cell lines start at $48 + 16 * n
+  and 15
+  cp $48 & 15
+  jp nz,MenuBgCell_1
+  ld hl,(MenuBgSP)
+  ld sp,hl
+  ret
+
+; Variables are placed at the unused end of RAM before the stack (shadow screen ends at $8F20)
+MenuBgDelta   EQU $8F20         ; 32 bytes: previous tile XOR new tile
+MenuBgPrev    EQU $8F40         ; tile number of the background drawn on the screen, 0 = nothing
+MenuBgMap     EQU $8F41         ; DW
+MenuBgMask    EQU $8F43         ; DW
+MenuBgMaskRow EQU $8F45         ; DW
+MenuBgSP      EQU $8F47         ; DW
+MenuBgLine    EQU $8F49
+MenuBgCol     EQU $8F4B
+MenuBgCols    EQU $8F4C
+MenuBgRows    EQU $8F4D
+ArrowMask     EQU $8F4A         ; $FF >> shift
+ArrowEnd      EQU $8F4E         ; line after the last arrow line
+
+; Menu selection arrows are XORed directly onto the Specialist screen (drawing twice erases).
+; Left arrow: Tileset3, screen byte column 1, shifted 3 pixels; right arrow: Tileset3+32,
+; column 9, shifted 5. The arrow is 8 pixels wide and 10 lines high, lines at LDB8F + $48.
+ArrowsToggle:
+  ld de,Tileset3
+  ld h,$9C+1
+  ld c,3
+  call ArrowXor
+  ld de,Tileset3+32
+  ld h,$9C+9
+  ld c,5
+; DE = tile (2 bytes per line, the first is the pattern), H = screen column address, C = shift
+ArrowXor:
+  ld a,(LDB8F)                  ; menu Y pos
+  add a,$48                     ; first screen line of the game window
+  ld l,a
+  add a,10
+  ld (ArrowEnd),a
+  ld a,$FF
+  ld b,c
+ArrowXor_1:
+  or a
+  rra
+  dec b
+  jp nz,ArrowXor_1
+  ld (ArrowMask),a              ; $FF >> shift
+ArrowXor_2:
+  ld a,(de)                     ; pattern
+  inc de
+  inc de
+  ld b,c
+ArrowXor_3:
+  rrca                          ; rotate right by shift
+  dec b
+  jp nz,ArrowXor_3
+  ld b,a
+  ld a,(ArrowMask)
+  and b                         ; the part in the first column
+  xor (hl)
+  ld (hl),a
+  inc h
+  ld a,(ArrowMask)
+  cpl
+  and b                         ; the part in the next column
+  xor (hl)
+  ld (hl),a
+  dec h
+  inc l                         ; next line
+  ld a,(ArrowEnd)
+  cp l
+  jp nz,ArrowXor_2
+  ret
+
+; A = new menu Y pos: erase the arrows, set the new position, draw the arrows, short delay
+MenuMoveArrows:
+  push af
+  call ArrowsToggle
+  pop af
+  ld (LDB8F),a
+  call ArrowsToggle
+  ld bc,4200                    ; fixed delay about 0.1 s, does not depend on LDC59 (the game sets 150)
+MenuMoveArrows_1:
+  dec bc
+  ld a,b
+  or c
+  jp nz,MenuMoveArrows_1
+  ret
 ;
 ; Copy shadow screen 24*128=3072 bytes to Specialist screen
 ShowShadowScreen:
